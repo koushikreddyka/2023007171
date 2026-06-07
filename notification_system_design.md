@@ -375,3 +375,42 @@ Archiving keeps active table smaller but old data management becomes slightly ha
 
 I think using pagination + Redis + websocket together would give the best performance and user experience for this notification system.
 
+
+# Stage 5
+
+The given implementation has few problems.
+First issue is it is processing students one by one. For 50,000 students this will take a lot of time and if send_email fails in between then some students will get notification and some will not get it and also if server crashes in the middle then process will stop and remaining students will not receive anything.
+
+I would not keep email sending and DB save in same operation. Saving notification in DB is more important because it acts as source of truth. Email can be retried later if it fails.
+
+I would use a queue system.
+HR clicks notify all.
+Notification gets saved in DB first.
+Then all student ids are pushed into queue.Workers take student ids from queue and process them.They send email and push notification to app.If email fails then job can be retried again after some time.
+
+
+## pseudocode:
+notify_all(student_ids,message)
+
+save_to_db(message)
+
+for each student
+   push_to_queue(student,message)
+
+worker()
+
+job = get_job()
+
+try
+   send_email()
+   push_to_app()
+   mark_success()
+
+catch
+   retry_job()
+
+If email failed for 200 students, those jobs should remain in queue and retry again after some time. This avoids manually sending notifications again to all students.
+
+This approach is faster because many workers can process notifications together.
+
+It is also more reliable because even if server crashes or email API fails, jobs remain in queue and can be processed later.
