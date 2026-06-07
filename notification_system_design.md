@@ -350,3 +350,28 @@ sql SELECT DISTINCT studentID FROM notifications WHERE notificationType = 'Place
 For MySQL:
 
 sql SELECT DISTINCT studentID FROM notifications WHERE notificationType = 'Placement' AND createdAt >= NOW() - INTERVAL 7 DAY; 
+
+
+# Stage 4
+
+Right now every time a student opens the notifications page, data is fetched from DB. If 50,000 students keep opening the page then DB will get overloaded and response time will increase.
+
+Some things I would do:
+
+- Use pagination instead of loading everything at once. Example only 20 notifications per request.
+- Use Redis cache for frequently accessed notifications so DB is not hit every time.
+- Use websocket for new notifications. Then frontend does not need to keep asking server every few seconds.
+- Add proper indexes on studentID, isRead and createdAt columns.
+- Move very old notifications to archive tables because users generally don't check notifications from many months ago.
+
+Pagination is simple and reduces load but user may need multiple requests to see all notifications.
+
+Redis is very fast and reduces DB reads but cache management becomes another task.
+Websocket gives best user experience because notifications come instantly but implementation is more difficult than normal REST APIs.
+
+Indexes improve query speed but too many indexes can slow inserts and updates.
+
+Archiving keeps active table smaller but old data management becomes slightly harder.
+
+I think using pagination + Redis + websocket together would give the best performance and user experience for this notification system.
+
