@@ -414,3 +414,17 @@ If email failed for 200 students, those jobs should remain in queue and retry ag
 This approach is faster because many workers can process notifications together.
 
 It is also more reliable because even if server crashes or email API fails, jobs remain in queue and can be processed later.
+
+# Stage 6
+I assigned weights like:
+
+Placement = 3
+Result = 2
+Event = 1
+
+Notifications are first sorted based on priority and then by timestamp.
+
+For maintaining top 10 efficiently when new notifications arrive, I would not sort the entire list again every time. Instead I can compare the new notification with the lowest priority notification currently present in top 10 and replace it if required.
+
+This reduces unnecessary sorting and improves performance when notifications keep arriving continuously.
+
