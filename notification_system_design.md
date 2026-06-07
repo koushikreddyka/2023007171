@@ -300,3 +300,53 @@ sql DELETE FROM notifications WHERE notificationId = 'N101';
 ## Conclusion
 
 PostgreSQL is suitable for this notification platform because it provides reliable storage, supports indexing, handles large amounts of data efficiently and maintains data consistency. By using indexing, caching, pagination and partitioning, the system can continue to perform well even when the number of notifications grows significantly.
+
+
+# Stage 3
+
+### Is the query accurate?
+
+Yes, the query is correct,it fetches unread notifications of a particular student and sorts it based on creation time. 
+
+### Why is it slow?
+The database now contains around 50,000 students and 5,000,000 notifications. If there is no proper index, the database has to scan a large number of rows before finding the required records.
+
+And also using SELECT * fetches all columns even when only a few fields may be needed by the application. This increases data transfer and memory usage.
+
+Sorting with ORDER BY createdAt can also become expensive when many notifications are returned.
+
+### What would I change?
+
+Instead of selecting all columns, I would fetch only the required columns.
+
+sql SELECT notificationID, title, message, createdAt FROM notifications WHERE studentID = 1042 AND isRead = false ORDER BY createdAt ASC; 
+
+I would also create a composite index:
+
+sql CREATE INDEX idx_student_read_created ON notifications(studentID, isRead, createdAt); 
+
+This helps the database quickly find unread notifications of a student and return them in sorted order.
+
+### Likely Computation Cost
+
+Without index:
+- Time Complexity ≈ O(N)
+- Database may scan millions of rows
+
+With composite index:
+- Time Complexity ≈ O(log N)
+- Much faster lookup and sorting
+
+### Teammate syggestion to add indexes on every column?
+
+No,Adding indexes on every column is not a good idea.Because More storage space is required.INSERT, UPDATE and DELETE operations become slower because all indexes must also be updated. Many indexes may never be used by queries and database optimizer may get confused with too many unnecessary indexes.
+
+Indexes should only be added on columns that are frequently used in filtering, searching, joining or sorting.
+
+### Query to find all students who received Placement notifications in the last 7 days
+
+sql SELECT DISTINCT studentID FROM notifications WHERE notificationType = 'Placement' AND createdAt >= NOW() - INTERVAL '7 days'; 
+
+For MySQL:
+
+sql SELECT DISTINCT studentID FROM notifications WHERE notificationType = 'Placement' AND createdAt >= NOW() - INTERVAL 7 DAY; 
